@@ -7,15 +7,17 @@ First, let's load some helper tools for this documentation
 ```cpp
 ?: #include <bitset>
 ?: #include <iostream>
-?: using std::cout;
-?: using std::bitset;
+?: #include "bitstack.h"
+
+?: void p(struct bitstack_t *st) {
+::    std::cout << std::bitset<32>(st->bv) << '\n';
+:: }
 ```
 
 Then, let's load the `bitstack` library and create one instance
 
 ```cpp
 ?: #pragma cling load("libbitstack.so")
-?: #include "bitstack.h"
 
 ?: struct bitstack_t st;
 ?: bitstack_create(&st);
@@ -41,7 +43,7 @@ The only thing that we can do is to push values.
 ?: bitstack_push(&st, 28)
 (int) 28
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01010000000000000000000000000000
 ```
 
@@ -58,7 +60,7 @@ the current top:
 ?: bitstack_push(&st, 29)
 (int) -1
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01010000000000000000000000000000
 ```
 
@@ -69,7 +71,7 @@ and arbitrary value
 ?: bitstack_add(&st, 29)
 (int) 29
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01110000000000000000000000000000
 ```
 
@@ -86,13 +88,13 @@ Like push we have pop
 ?: bitstack_push(&st, 0)
 (int) 0
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01110000000000000000000000000001
 
 ?: bitstack_pop(&st)
 (int) 0
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01110000000000000000000000000000
 ```
 
@@ -107,13 +109,13 @@ an error
 ?: bitstack_pop_if(&st, 10)
 (int) -1
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01110000000000000000000000000000
 
 ?: bitstack_pop_if(&st, 28)
 (int) 28
 
-?: cout << bitset<32>(st.bv) << '\n';
+?: p(&st);
 01100000000000000000000000000000
 ```
 
@@ -125,6 +127,6 @@ an error
 
 ?: bitstack_destroy(&st); // this will not modify st2
 
-?: cout << bitset<32>(st2.bv) << '\n';
+?: p(&st2);
 01100000000000000000000000000000
 ```

@@ -3,23 +3,23 @@ FUSEFLAGS=$(CFLAGS) `pkg-config fuse3 --cflags --libs`
 
 CLING=docker run --rm -it -v `pwd`:/mnt -w /mnt eldipa/cling cling %a
 
-all: hanoilib.o bitstack.o
-	gcc $(FUSEFLAGS) bitstack.o hanoilib.o hanoifs.c -o hanoifs
+all: hanoi.o bitstack.o
+	gcc $(FUSEFLAGS) bitstack.o hanoi.o hanoifs.c -o hanoifs
 
-hanoilib.o: hanoilib.c hanoilib.h
-	gcc $(CFLAGS) -c hanoilib.c -o hanoilib.o
+hanoi.o: hanoi.c hanoi.h
+	gcc $(CFLAGS) -c hanoi.c -o hanoi.o
 
 bitstack.o: bitstack.c bitstack.h
 	gcc $(CFLAGS) -c bitstack.c -o bitstack.o
 
-libhanoilib.so: hanoilib.c hanoilib.h
-	gcc $(CFLAGS) -shared -fPIC -o libhanoilib.so hanoilib.c
+libhanoi.so: hanoi.c hanoi.h
+	gcc $(CFLAGS) -shared -fPIC -o libhanoi.so hanoi.c
 
 libbitstack.so: bitstack.c bitstack.h
 	gcc $(CFLAGS) -shared -fPIC -o libbitstack.so bitstack.c
 
-test: libhanoilib.so libbitstack.so
-	byexample --timeout=8 -l cpp -x-shebang="cpp:$(CLING)" *.md
+test: libhanoi.so libbitstack.so
+	byexample --ff --timeout=8 -l cpp -x-shebang="cpp:$(CLING)" *.md
 
 pull_cling:
 	docker pull eldipa/cling
