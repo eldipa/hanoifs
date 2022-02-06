@@ -480,6 +480,10 @@ int main(int argc, char *argv[])
         args.argv[0][0] = '\0';
     }
 
+    // Force to run in single-threaded mode. HanoiFS is not thread safe
+    // for now.
+    assert(fuse_opt_add_arg(&args, "-s") == 0);
+
     ret = fuse_main(args.argc, args.argv, &hanoifs_ops, NULL);
     fuse_opt_free_args(&args);
     return ret;
