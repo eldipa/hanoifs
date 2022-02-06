@@ -15,7 +15,7 @@ int bitstack_create(struct bitstack_t *st);
 
 void bitstack_destroy(struct bitstack_t *st);
 
-int bitstack_copy_from(struct bitstack_t *st, struct bitstack_t * const src);
+int bitstack_copy(struct bitstack_t *st, struct bitstack_t * const src);
 
 /*
  * Return the top of the stack value (a number between 0 and 31)

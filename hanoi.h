@@ -29,6 +29,8 @@ void hanoi_destroy(struct hanoi_t *h);
  * */
 int hanoi_is_challenge_completed(struct hanoi_t *h);
 
+int hanoi_get_peg_copy(struct hanoi_t *h, unsigned peg, struct bitstack_t *bt);
+
 /*
  * Move one disc from one peg to another.
  *

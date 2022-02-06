@@ -50,6 +50,13 @@ int hanoi_is_challenge_completed(struct hanoi_t *h) {
     return h->pegs[h->pegs_n - 1].bv == h->peg_full_mask;
 }
 
+int hanoi_get_peg_copy(struct hanoi_t *h, unsigned peg, struct bitstack_t *bt) {
+    if (peg >= h->pegs_n)
+        return -1;
+
+    return bitstack_copy(bt, &h->pegs[peg]);
+}
+
 /*
  * Move one disc from one peg to another.
  *

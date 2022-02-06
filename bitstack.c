@@ -10,7 +10,7 @@ void bitstack_destroy(struct bitstack_t *st) {
     st->bv = 0;
 }
 
-int bitstack_copy_from(struct bitstack_t *st, struct bitstack_t * const src) {
+int bitstack_copy(struct bitstack_t *st, struct bitstack_t * const src) {
     st->bv = src->bv;
     return 0;
 }

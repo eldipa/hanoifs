@@ -123,7 +123,7 @@ an error
 
 ```cpp
 ?: struct bitstack_t st2;
-?: bitstack_copy_from(&st2, &st);
+?: bitstack_copy(&st2, &st);
 
 ?: bitstack_destroy(&st); // this will not modify st2
 
