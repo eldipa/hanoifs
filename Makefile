@@ -19,7 +19,7 @@ libbitstack.so: bitstack.c bitstack.h
 	gcc $(CFLAGS) -shared -fPIC -o libbitstack.so bitstack.c
 
 test: libhanoi.so libbitstack.so
-	byexample --ff --timeout=8 -l cpp -x-shebang="cpp:$(CLING)" *.md
+	byexample --ff --timeout=8 -l shell -l cpp -x-shebang="cpp:$(CLING)" *.md
 
 pull_cling:
 	docker pull eldipa/cling

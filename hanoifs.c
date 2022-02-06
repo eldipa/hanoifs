@@ -1,24 +1,3 @@
-/*
-  FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
-
-  This program can be distributed under the terms of the GNU GPLv2.
-  See the file COPYING.
-*/
-
-/** @file
- *
- * minimal example filesystem using high-level API
- *
- * Compile with:
- *
- *     gcc -Wall hello.c `pkg-config fuse3 --cflags --libs` -o hello
- *
- * ## Source code ##
- * \include hello.c
- */
-
-
 #define FUSE_USE_VERSION 31
 
 #include <fuse.h>
@@ -40,7 +19,7 @@
 // way to share the options with the functions/hooks.
 //
 // We cannot initialize it here but we must do it in the main().
-// This is because the field msg is a char* and FUSE will assume
+// This is because the field flagname is a char* and FUSE will assume
 // that if it is not NULL it is a malloc'd string and it will call free()
 //
 // So we need to set the default using malloc in the main()
@@ -49,7 +28,7 @@ struct options_t {
     unsigned pegs_n;
     unsigned discs_n;
 
-    char *msg;
+    char *flagname;
 
     int show_help;
 } options;
@@ -73,7 +52,7 @@ static
 const struct fuse_opt option_spec[] = {
     { "--pegs=%u", offsetof(struct options_t, pegs_n), 1 },
     { "--discs=%u", offsetof(struct options_t, discs_n), 1 },
-    { "--msg=%s", offsetof(struct options_t, msg), 1 },
+    { "--flagname=%s", offsetof(struct options_t, flagname), 1 },
 
     { "-h", offsetof(struct options_t, show_help), 1 },
     { "--help", offsetof(struct options_t, show_help), 1 },
@@ -124,6 +103,22 @@ enum PathKind {
     PKind_Invalid
 };
 
+
+/*
+ * Parse the given path and determine if
+ *  - it is the root /  (PKind_Root)
+ *  - it is a peg (folder)  /A  /B  (PKind_Peg)
+ *  - it is a disc (file)  /A/0 /A/2  (PKind_Disc)
+ *  - it is the flag file /youwin  (PKind_Flag)
+ *  - anything else (PKind_Invalid)
+ *
+ * Return the kind and the peg/disc if they are available.
+ *
+ * Note: this function checks against out of range errors
+ * like /A/99999 but it does not check the existance of the
+ * file/folder so /A/1 will not fail but that doesn't mean that
+ * the disc 1 is really in the peg A.
+ * */
 static
 enum PathKind hanoifs_parse_path(
         const char *path,
@@ -132,6 +127,10 @@ enum PathKind hanoifs_parse_path(
         unsigned *disc) {
     if (strcmp(path, "/") == 0) {
         return PKind_Root;
+    }
+
+    if (path[0] == '/' && strcmp(&path[1], options.flagname) == 0) {
+        return PKind_Flag;
     }
 
     char folder;
@@ -196,155 +195,226 @@ int hanoifs_getattr(
         const char *path,
         struct stat *stbuf,
         struct fuse_file_info *fi) {
-	(void) fi;
-	int res = 0;
+    (void) fi;
+    int res = 0;
 
-        // Set to zero the output struct. Mandatory.
-	memset(stbuf, 0, sizeof(struct stat));
+    // Set to zero the output struct. Mandatory.
+    memset(stbuf, 0, sizeof(struct stat));
 
-        struct hanoi_t *h = fuse_get_context()->private_data;
+    struct hanoi_t *h = fuse_get_context()->private_data;
 
-        unsigned peg;
-        unsigned disc;
-        enum PathKind kind = hanoifs_parse_path(path, h, &peg, &disc);
+    unsigned peg;
+    unsigned disc;
+    enum PathKind kind = hanoifs_parse_path(path, h, &peg, &disc);
 
-        switch (kind) {
-            case PKind_Root:
-                // st_mode is a mask that contains.
-                //  - the file type (S_IFSOCK (socket), S_IFLNK (symlink), ...)
-                //  - the file mode (S_ISVTX (sticky bit), S_ISUID (set-user-ID), ...)
-                //  - the file permissions (S_IRUSR (owner can read), S_IWGRP (group can write), ...)
-                //
-                // See inode(7)
-                //
-                // The following sets a mask for a directory with 0755
-                // permissions (rwx for user, rx for group and others)
-                //
-		stbuf->st_mode = S_IFDIR | 0755;
+    switch (kind) {
+        case PKind_Root:
+            // st_mode is a mask that contains.
+            //  - the file type (S_IFSOCK (socket), S_IFLNK (symlink), ...)
+            //  - the file mode (S_ISVTX (sticky bit), S_ISUID (set-user-ID), ...)
+            //  - the file permissions (S_IRUSR (owner can read), S_IWGRP (group can write), ...)
+            //
+            // See inode(7)
+            //
+            // The following sets a mask for a directory with 0755
+            // permissions (rwx for user, rx for group and others)
+            //
+            stbuf->st_mode = S_IFDIR | 0755;
 
-                // Count the hard links to the folder.
-                //
-                // The exact number requires to know how many other folders
-                // are pointing to this directory.
-                //
-                // For '/' we have:
-                //  - the parent of / which points to /  (+1)
-                //  - the '.' entry which points to itself  (+1)
-                //  - each subfolder /A, /B, /C points to its parent /  (+3)
-                //
-                // TODO: it is not clear for / if we should count the hard link
-                // of its parent because it is outside of the file system.
-                // The FUSE's example hello.c counts it but the example
-                // invalidate_path.c doesn't.
-                // */
-		stbuf->st_nlink = 5;
+            // Count the hard links to the folder.
+            //
+            // The exact number requires to know how many other folders
+            // are pointing to this directory.
+            //
+            // For '/' we have:
+            //  - the parent of / which points to /  (+1)
+            //  - the '.' entry which points to itself  (+1)
+            //  - each subfolder /A, /B, /C points to its parent /  (+3)
+            //
+            // TODO: it is not clear for / if we should count the hard link
+            // of its parent because it is outside of the file system.
+            // The FUSE's example hello.c counts it but the example
+            // invalidate_path.c doesn't.
+            // */
+            stbuf->st_nlink = 5;
 
-                return res;
+            return res;
 
-            case PKind_Peg:
-                // All good, it is a valid folder
-                stbuf->st_mode = S_IFDIR | 0755;
+        case PKind_Flag:
+        case PKind_Peg:
+            // All good, it is a valid folder
+            stbuf->st_mode = S_IFDIR | 0755;
 
-                // For /A, /B, /C we have:
-                //  - the parent of them which points to they (the /)  (+1)
-                //  - the '.' entry which points to itself  (+1)
-                //
-                stbuf->st_nlink = 2;
-                return res;
-            case PKind_Disc:
-                // All good, it is a regular valid file
-                stbuf->st_mode = S_IFREG | 0444;
-                stbuf->st_nlink = 1;
+            // For /A, /B, /C we have:
+            //  - the parent of them which points to they (the /)  (+1)
+            //  - the '.' entry which points to itself  (+1)
+            //
+            stbuf->st_nlink = 2;
+            return res;
+        case PKind_Disc:
+            // All good, it is a regular valid file
+            stbuf->st_mode = S_IFREG | 0444;
+            stbuf->st_nlink = 1;
 
-                // Just for fun, make the files smaller or larger based on
-                // their names to "emulate" the discs' sizes.
-                //
-                // NOTE: we assume that disc is less than 32 otherwise the
-                // shift operation is undefined.
-                // This should be okay given that the current hanoi_t supports
-                // only up to 32 discs (numered from 0 to 31)
-                assert(disc < 32);
-                stbuf->st_size = (1 << disc);
-                return res;
+            // Just for fun, make the files smaller or larger based on
+            // their names to "emulate" the discs' sizes.
+            //
+            // NOTE: we assume that disc is less than 32 otherwise the
+            // shift operation is undefined.
+            // This should be okay given that the current hanoi_t supports
+            // only up to 32 discs (numered from 0 to 31)
+            assert(disc < 32);
+            stbuf->st_size = (1 << disc);
+            return res;
 
-            default:
-                return -ENOENT;
-        }
+        default:
+            return -ENOENT;
+    }
 
-        assert(0);
+    assert(0);
 }
 
-static int hanoifs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-			 off_t offset, struct fuse_file_info *fi,
-			 enum fuse_readdir_flags flags)
-{
-	(void) offset;
-	(void) fi;
-	(void) flags;
+static
+int hanoifs_readdir(
+        const char *path,
+        void *buf,
+        fuse_fill_dir_t filler,
+        off_t offset,
+        struct fuse_file_info *fi,
+        enum fuse_readdir_flags flags
+        ) {
+    (void) offset;
+    (void) fi;
+    (void) flags;
 
-        struct hanoi_t *h = fuse_get_context()->private_data;
+    struct hanoi_t *h = fuse_get_context()->private_data;
 
-        unsigned peg;
-        unsigned disc;
-        enum PathKind kind = hanoifs_parse_path(path, h, &peg, &disc);
+    unsigned peg;
+    unsigned disc;
+    enum PathKind kind = hanoifs_parse_path(path, h, &peg, &disc);
 
-        switch (kind) {
-            case PKind_Root:
-                // filler() adds entries to the directory. Its arguments are:
-                //  - buf: the buffer received by readdir
-                //  - name: the directory/file name (the entry name)
-                //  - stat: a pointer to struct stat with the stats of the file (optional)
-                //  - offset: see below
-                //
-                // TODO it is unclear the use of offset and the size of the buffer.
-                //
-                filler(buf, ".", NULL, 0, 0);
-                filler(buf, "..", NULL, 0, 0);
+    switch (kind) {
+        case PKind_Root:
+            // filler() adds entries to the directory. Its arguments are:
+            //  - buf: the buffer received by readdir
+            //  - name: the directory/file name (the entry name)
+            //  - stat: a pointer to struct stat with the stats of the file (optional)
+            //  - offset: see below
+            //
+            // TODO it is unclear the use of offset and the size of the buffer.
+            //
+            filler(buf, ".", NULL, 0, 0);
+            filler(buf, "..", NULL, 0, 0);
 
-                for (peg = 0; peg < h->pegs_n; ++peg) {
-                    char folder[] = {'A' + peg, '\0'};
-                    filler(buf, folder, NULL, 0, 0);
-                }
-                return 0;
+            // Add one entry per peg (directory)
+            for (peg = 0; peg < h->pegs_n; ++peg) {
+                char folder[] = {'A' + peg, '\0'};
+                filler(buf, folder, NULL, 0, 0);
+            }
 
-            case PKind_Peg:
-                filler(buf, ".", NULL, 0, 0);
-                filler(buf, "..", NULL, 0, 0);
+            // If the challenge is complete, add an extra
+            // file "flagname" to indicate that.
+            if (hanoi_is_challenge_completed(h))
+                filler(buf, options.flagname, NULL, 0, 0);
 
-                // Get a copy of the selected peg and iterate
-                // of its discs (poppin one by one and creating
-                // a directory entry for each)
-                struct bitstack_t bt;
-                if (hanoi_get_peg_copy(h, peg, &bt) == -1)
+            return 0;
+
+        case PKind_Peg:
+            filler(buf, ".", NULL, 0, 0);
+            filler(buf, "..", NULL, 0, 0);
+
+            // Get a copy of the selected peg and iterate
+            // of its discs (poppin' one by one and creating
+            // a directory entry for each)
+            struct bitstack_t bt;
+            if (hanoi_get_peg_copy(h, peg, &bt) == -1)
+                return -ENOENT;
+
+            int top = bitstack_pop(&bt);
+            while (top != -1) {
+                // We assume a small value so it can fit in a small
+                // file[] buffer
+                assert(top >= 0 && top < 32);
+                char file[4] = {0};
+                snprintf(file, sizeof(file), "%u", top);
+
+                filler(buf, file, NULL, 0, 0);
+
+                top = bitstack_pop(&bt);
+            }
+
+            return 0;
+
+        case PKind_Disc:
+            // This should never happen because a disc is regular
+            // file, not a folder so it should not be possible
+            // to call readdir over a file
+            return -ENOENT;
+
+        default:
+            return -ENOENT;
+    }
+
+    assert(0);
+}
+
+/*
+ * Rename the oldpath to newpath following the rules of the Hanoi Towers
+ * challenge.
+ *
+ * The rename (aka move) is possible only between discs, only if the rename
+ * does not change the disc and if the movement is allowed due the restriction
+ * of the game.
+ *
+ * mv /A/1 /A/2   not allowed
+ * mv /A/1 /B/1   may be allowed
+ * mv /A   /B     not allowed
+ * */
+static
+int hanoifs_rename(const char *oldpath, const char *newpath, unsigned int flags) {
+    (void) flags;
+
+    struct hanoi_t *h = fuse_get_context()->private_data;
+
+    unsigned oldpeg;
+    unsigned olddisc;
+    enum PathKind oldkind = hanoifs_parse_path(oldpath, h, &oldpeg, &olddisc);
+
+    unsigned newpeg;
+    unsigned newdisc;
+    enum PathKind newkind = hanoifs_parse_path(newpath, h, &newpeg, &newdisc);
+
+    switch (oldkind) {
+        case PKind_Disc:
+            switch (newkind) {
+                case PKind_Disc:
+                    // Don't allow change from one disc to another
+                    if (newdisc != olddisc)
+                        return -EACCES;
+
+                    if (hanoi_try_move_disc(h, olddisc, oldpeg, newpeg) == -1)
+                        return -EACCES;
+
+                    return 0;
+
+                case PKind_Root:
+                case PKind_Peg:
+                    return -EACCES;
+
+                default:
                     return -ENOENT;
+            }
 
-                int top = bitstack_pop(&bt);
-                while (top != -1) {
-                    // We assume a small value so it can fit in a small
-                    // file[] buffer
-                    assert(top >= 0 && top < 32);
-                    char file[4] = {0};
-                    snprintf(file, sizeof(file), "%u", top);
+        case PKind_Root:
+        case PKind_Peg:
+            return -EACCES;
 
-                    filler(buf, file, NULL, 0, 0);
+        default:
+            return -ENOENT;
+    }
 
-                    top = bitstack_pop(&bt);
-                }
-
-                return 0;
-
-            case PKind_Disc:
-                // This should never happen because a disc is regular
-                // file, not a folder
-                return -ENOENT;
-
-            default:
-                return -ENOENT;
-        }
-
-        assert(0);
+    assert(0);
 }
-
 
 static
 const struct fuse_operations hanoifs_ops = {
@@ -358,56 +428,60 @@ const struct fuse_operations hanoifs_ops = {
     // cannot stat a file or list a directory.
     // Basically without this the output of "ls" makes no sense.
     .getattr	= hanoifs_getattr,
-    .readdir	= hanoifs_readdir
+    .readdir	= hanoifs_readdir,
+
+    // This is the only thing that we allow the user to interact
+    // with the file system.
+    .rename     = hanoifs_rename
 };
 
 static void show_help(const char *progname)
 {
-	printf("usage: %s [options] <mountpoint>\n\n", progname);
-        /*
-	printf("File-system specific options:\n"
-	       "    --name=<s>          Name of the \"hello\" file\n"
-	       "                        (default: \"hello\")\n"
-	       "    --contents=<s>      Contents \"hello\" file\n"
-	       "                        (default \"Hello, World!\\n\")\n"
-	       "\n");
-               */
+    printf("usage: %s [options] <mountpoint>\n\n", progname);
+    printf("File-system specific options:\n"
+            "    --flagname=<s>      Name of the \"flag\" file that indicates victory\n"
+            "                        (default: \"you win\")\n"
+            "    --pegs=<n>          Number of pegs (folders)\n"
+            "                        (default 3)\n"
+            "    --discs=<n>         Number of discs (files)\n"
+            "                        (default 3)\n"
+            "\n");
 }
 
 int main(int argc, char *argv[])
 {
-	int ret;
-	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    int ret;
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-        // Set the default values in case the user does not specify
-        // them
-        options.pegs_n = 3;
-        options.discs_n = 3;
+    // Set the default values in case the user does not specify
+    // them
+    options.pegs_n = 3;
+    options.discs_n = 3;
 
-        // Strings must be malloc'd because FUSE assumes that and it will
-        // call free() on them.
-        options.msg = strdup("well done");
-
-
-	// Parse options
-	if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
-		return 1;
+    // Strings must be malloc'd because FUSE assumes that and it will
+    // call free() on them.
+    options.flagname = strdup("you win");
 
 
+    // Parse options
+    if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1)
+        return 1;
 
-	/* When --help is specified, first print our own file-system
-	   specific help text, then signal fuse_main to show
-	   additional help (by adding `--help` to the options again)
-	   without usage: line (by setting argv[0] to the empty
-	   string) */
-	if (options.show_help) {
-		show_help(argv[0]);
-		assert(fuse_opt_add_arg(&args, "--help") == 0);
-		args.argv[0][0] = '\0';
-	}
 
-	ret = fuse_main(args.argc, args.argv, &hanoifs_ops, NULL);
-	fuse_opt_free_args(&args);
-	return ret;
+    // The follwing comment is from the hello.c example from libfuse
+    /* When --help is specified, first print our own file-system
+       specific help text, then signal fuse_main to show
+       additional help (by adding `--help` to the options again)
+       without usage: line (by setting argv[0] to the empty
+       string) */
+    if (options.show_help) {
+        show_help(argv[0]);
+        assert(fuse_opt_add_arg(&args, "--help") == 0);
+        args.argv[0][0] = '\0';
+    }
+
+    ret = fuse_main(args.argc, args.argv, &hanoifs_ops, NULL);
+    fuse_opt_free_args(&args);
+    return ret;
 }
 
