@@ -1,6 +1,6 @@
-# Hanoi Towers
+# Tower of Hanoi
 
-The `hanoi` lib implements the classic Hanoi Towers
+The `hanoi` lib implements the classic Tower of Hanoi
 game/puzzle/challenge.
 
 But before explaining it, let's load some helper functions
@@ -26,7 +26,7 @@ Now, let's load the required libraries:
 ?: #pragma cling load("libhanoi.so")
 ```
 
-The classic Hanoi Towers consist in 3 towers (pegs) and 3 discs
+The classic Tower of Hanoi consists in 3 towers (pegs) and 3 discs
 of sizes different sizes.
 
 `hanoi_create` allows to create a challenge of up to `HANOI_MAX_PEGS`
@@ -58,7 +58,7 @@ For simplicity we are going to use 3 pegs and 3 discs:
 > Notice how the discs 0, 1 and 2 are set in the peg number 0.
 
 
-In the Hanoi Towers we can move the discs from one peg to another.
+In the Tower of Hanoi we can move the discs from one peg to another.
 
 Here I'm moving the disc 0 from the peg 0 to the peg 2:
 

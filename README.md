@@ -1,7 +1,7 @@
 
 # Hanoi FS
 
-The classic Hanoi Towers game/challenge/puzzle implemented
+The classic Tower of Hanoi game/challenge/puzzle implemented
 as a file system using FUSE.
 
 To mount it call:
@@ -11,7 +11,7 @@ $ ./hanoifs mnt/
 ```
 
 Within the mounted file system the folders represent the
-towers of Hanoi
+*towers* of Hanoi
 
 ```shell
 $ ls -lah mnt/
@@ -23,7 +23,7 @@ drwxr-xr-x 2 root root    0 Jan  1  1970 B
 drwxr-xr-x 2 root root    0 Jan  1  1970 C
 ```
 
-Inside each folder there are the files which represent the discs
+Inside each folder there are the files which represent the *discs*
 of the game.
 
 Initially all the files (discs) are in the first folder (tower).
@@ -92,7 +92,7 @@ $ mv mnt/A/1 mnt/B/1
 $ mv mnt/C/0 mnt/B/
 ```
 
-The goal of the Hanoi Towers is to move all the discs to the latest
+The goal of the Tower of Hanoi is to move all the discs to the latest
 tower (the latest folder, `C` in our case).
 
 Once completed, a special file will appear at the root:

@@ -71,7 +71,7 @@ void *hanoifs_init(
 
     printf("%u %u\n", options.pegs_n, options.discs_n);
 
-    // Initialize the Hanoi Tower game
+    // Initialize the Tower of Hanoi game
     struct hanoi_t *h = malloc(sizeof(*h));
     int ret = hanoi_create(h, options.pegs_n, options.discs_n);
 
@@ -359,7 +359,7 @@ int hanoifs_readdir(
 }
 
 /*
- * Rename the oldpath to newpath following the rules of the Hanoi Towers
+ * Rename the oldpath to newpath following the rules of the Tower of Hanoi
  * challenge.
  *
  * The rename (aka move) is possible only between discs, only if the rename
