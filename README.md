@@ -158,8 +158,3 @@ You may just run `make install_test_deps` as a shortcut.
 Finally, compile with `make` and run the tests with `make test`
 
 To run the test your user must be able to run `docker` without `sudo`.
-If your user cannot do that, you need to run the tests as follows:
-
-```shell
-$ SUDO=sudo make test       # byexample: +skip
-```
