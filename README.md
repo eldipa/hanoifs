@@ -144,15 +144,22 @@ If you have `pip`, install
 [byexample](https://byexamples.github.io/) running:
 
 ```shell
-$ pip install byexample     # byexample: -skip
+$ pip install byexample     # byexample: +skip
 ```
 
 Then pull a docker image with `cling` installed inside running:
 
 ```shell
-$ make pull_cling       # byexample: -skip
+$ make pull_cling       # byexample: +skip
 ```
 
 You may just run `make install_test_deps` as a shortcut.
 
 Finally, compile with `make` and run the tests with `make test`
+
+To run the test your user must be able to run `docker` without `sudo`.
+If your user cannot do that, you need to run the tests as follows:
+
+```shell
+$ SUDO=sudo make test       # byexample: +skip
+```
