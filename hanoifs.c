@@ -69,8 +69,6 @@ void *hanoifs_init(
     (void) conn;
     cfg->kernel_cache = 1;
 
-    printf("%u %u\n", options.pegs_n, options.discs_n);
-
     // Initialize the Tower of Hanoi game
     struct hanoi_t *h = malloc(sizeof(*h));
     int ret = hanoi_create(h, options.pegs_n, options.discs_n);

@@ -7,6 +7,7 @@ as a file system using FUSE.
 To mount it call:
 
 ```shell
+$ mkdir -p mnt/
 $ ./hanoifs mnt/
 ```
 
@@ -14,13 +15,8 @@ Within the mounted file system the folders represent the
 *towers* of Hanoi
 
 ```shell
-$ ls -lah mnt/
-total 4.0K
-drwxr-xr-x 5 root root    0 Jan  1  1970 .
-drwxr-xr-x <...> ..
-drwxr-xr-x 2 root root    0 Jan  1  1970 A
-drwxr-xr-x 2 root root    0 Jan  1  1970 B
-drwxr-xr-x 2 root root    0 Jan  1  1970 C
+$ ls -a mnt/            # byexample: +norm-ws
+.  ..  A  B  C
 ```
 
 Inside each folder there are the files which represent the *discs*
@@ -29,24 +25,15 @@ of the game.
 Initially all the files (discs) are in the first folder (tower).
 
 ```shell
-$ ls -lah mnt/*         # byexample: +rm=~
+$ ls -a mnt/*         # byexample: +rm=~ +norm-ws
 mnt/A:
-total 0
-drwxr-xr-x 2 root root 0 Jan  1  1970 .
-drwxr-xr-x 5 root root 0 Jan  1  1970 ..
--r--r--r-- 1 root root 1 Jan  1  1970 0
--r--r--r-- 1 root root 2 Jan  1  1970 1
--r--r--r-- 1 root root 4 Jan  1  1970 2
+.  ..  0  1  2
 ~
 mnt/B:
-total 0
-drwxr-xr-x 2 root root 0 Jan  1  1970 .
-drwxr-xr-x 5 root root 0 Jan  1  1970 ..
+.  ..
 ~
 mnt/C:
-total 0
-drwxr-xr-x 2 root root 0 Jan  1  1970 .
-drwxr-xr-x 5 root root 0 Jan  1  1970 ..
+.  ..
 ```
 
 To move a disc from one tower to another do a plain `mv`
@@ -142,10 +129,30 @@ FUSE options:
 
 ## Compile
 
-Just call `make`. You will need `libfuse-dev` installed and `gcc`
-to compile it.
+You will need:
+ - `libfuse3-dev`
+ - `fuse3`
+ - `libfuse3-3`
+ - `gcc`
 
-If you have Python 3, install
-[byexample](https://byexamples.github.io/) and run the tests
-doing `make tests`. You will need to pull a docker image to run C/C++
-tests, just call `make pull_cling` before `make test`.
+You may just run `make install_deps` as a shortcut.
+
+For the tests you will need to install `docker`, `python3` and
+`byexample`.
+
+If you have `pip`, install
+[byexample](https://byexamples.github.io/) running:
+
+```shell
+$ pip install byexample     # byexample: -skip
+```
+
+Then pull a docker image with `cling` installed inside running:
+
+```shell
+$ make pull_cling       # byexample: -skip
+```
+
+You may just run `make install_test_deps` as a shortcut.
+
+Finally, compile with `make` and run the tests with `make test`
